@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick Draw Challenge</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f5f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 900px;
+        }
+        
+        .main-content {
+            display: flex;
+            width: 100%;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .canvas-container {
+            position: relative;
+            flex: 1;
+            min-width: 0;
+        }
+        
+        #drawing-board {
+            width: 100%;
+            height: 500px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            cursor: crosshair;
+        }
+        
+        .result-container {
+            width: 300px;
+            background-color: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .game-info {
+            text-align: center;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .timer {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .current-word {
+            font-size: 28px;
+            font-weight: bold;
+            color: #4b6bfb;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }
+        
+        .score-display {
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+        
+        .thinking-indicator {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .thinking-text {
+            font-size: 16px;
+            color: #666;
+            margin-left: 10px;
+        }
+        
+        .dot-pulse {
+            position: relative;
+            width: 10px;
+            height: 10px;
+            border-radius: 5px;
+            background-color: #4b6bfb;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% {
+                transform: scale(0.8);
+                opacity: 0.5;
+            }
+            50% {
+                transform: scale(1.2);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(0.8);
+                opacity: 0.5;
+            }
+        }
+        
+        .prediction-result {
+            font-size: 20px;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        
+        .prediction-details {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            flex: 1;
+            overflow-y: auto;
+            max-height: 200px;
+        }
+        
+        .prediction-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .prediction-item:last-child {
+            border-bottom: none;
+        }
+        
+        .prediction-label {
+            font-weight: bold;
+        }
+        
+        .prediction-confidence {
+            color: #4b6bfb;
+        }
+        
+        .tools-container {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .drawing-tools {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .color-picker {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+        
+        .color-option {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+        
+        .color-option.selected {
+            border-color: #333;
+        }
+        
+        .size-picker {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .app-controls {
+            display: flex;
+            gap: 10px;
+        }
+        
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            background-color: #4b6bfb;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #3a59e0;
+        }
+        
+        button.clear {
+            background-color: #ff6b6b;
+        }
+        
+        button.clear:hover {
+            background-color: #ff5252;
+        }
+        
+        #scoreboard-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .scoreboard-container {
+            background-color: white;
+            border-radius: 10px;
+            padding: 30px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+        
+        .scoreboard-title {
+            font-size: 28px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        .scoreboard-content {
+            margin-bottom: 30px;
+        }
+        
+        .scoreboard-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+            font-size: 18px;
+        }
+        
+        .final-score {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4b6bfb;
+            margin: 20px 0;
+        }
+        
+        .play-again {
+            background-color: #4CAF50;
+            padding: 12px 24px;
+            font-size: 18px;
+        }
+        
+        .play-again:hover {
+            background-color: #45a049;
+        }
+        
+        .success-indicator {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 100px;
+            color: #4CAF50;
+            text-shadow: 0 0 20px rgba(0,0,0,0.2);
+            animation: successPop 1s ease-out;
+            z-index: 100;
+        }
+        
+        @keyframes successPop {
+            0% { transform: translate(-50%, -50%) scale(0.2); opacity: 0; }
+            50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .result-container {
+                width: 100%;
+                max-height: 300px;
+            }
+            
+            .tools-container {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .drawing-tools, .app-controls {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Quick Draw Challenge</h1>
+        <p>Draw the word shown and see if the AI can recognize it!</p>
+    </header>
+    
+    <div class="app-container">
+        <div class="main-content">
+            <div class="canvas-container">
+                <canvas id="drawing-board"></canvas>
+                <div id="success-indicator" class="success-indicator">✓</div>
+            </div>
+            
+            <div class="result-container">
+                <div class="game-info">
+                    <div class="timer" id="timer">1:00</div>
+                    <div class="current-word" id="current-word">Loading...</div>
+                    <div class="score-display">Score: <span id="score">0</span>/4</div>
+                </div>
+                
+                <div class="thinking-indicator">
+                    <div class="dot-pulse"></div>
+                    <span class="thinking-text" id="thinking-status">AI is ready...</span>
+                </div>
+                
+                <div class="prediction-result" id="prediction-result">
+                    Draw the word above!
+                </div>
+                
+                <div class="prediction-details" id="prediction-details">
+                    <!-- Prediction details will be added here dynamically -->
+                </div>
+            </div>
+        </div>
+        
+        <div class="tools-container">
+            <div class="drawing-tools">
+                <div class="color-picker">
+                    <div class="color-option selected" style="background-color: #000000;" data-color="#000000"></div>
+                    <div class="color-option" style="background-color: #ff0000;" data-color="#ff0000"></div>
+                    <div class="color-option" style="background-color: #00ff00;" data-color="#00ff00"></div>
+                    <div class="color-option" style="background-color: #0000ff;" data-color="#0000ff"></div>
+                    <div class="color-option" style="background-color: #ffff00;" data-color="#ffff00"></div>
+                    <div class="color-option" style="background-color: #ff00ff;" data-color="#ff00ff"></div>
+                </div>
+                
+                <div class="size-picker">
+                    <label for="brush-size">Size:</label>
+                    <input type="range" id="brush-size" min="1" max="20" value="5">
+                </div>
+            </div>
+            
+            <div class="app-controls">
+                <button id="clear-canvas" class="clear">Clear Canvas</button>
+                <button id="start-game">Start Game</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="scoreboard-modal">
+        <div class="scoreboard-container">
+            <h2 class="scoreboard-title">Game Over!</h2>
+            <div class="scoreboard-content" id="scoreboard-content">
+                <!-- Scoreboard items will be added here dynamically -->
+            </div>
+            <div class="final-score">Final score: <span id="final-score">0</span>/4</div>
+            <button class="play-again" id="play-again">Play Again</button>
+        </div>
+    </div>
+    
+    <script>
+        // Game configuration
+        const GAME_WORDS = [
+            "Eiffel tower", "apple", "rainbow", "cloud", 
+            "clock", "grapes", "nose", "mountain", 
+            "computer", "light bulb"
+        ];
+        const WORDS_PER_GAME = 4;
+        const GAME_TIME_SECONDS = 60;
+        
+        // Game state
+        let gameActive = false;
+        let gameWords = [];
+        let currentWordIndex = 0;
+        let currentWord = "";
+        let score = 0;
+        let timeLeft = GAME_TIME_SECONDS;
+        let timerInterval = null;
+        let gameResults = [];
+        
+        // Canvas setup
+        const canvas = document.getElementById('drawing-board');
+        const ctx = canvas.getContext('2d');
+        let currentColor = '#000000';
+        let currentSize = 5;
+        let isDrawing = false;
+        let lastX = 0;
+        let lastY = 0;
+        
+        // Drawing data
+        let currentStroke = [];
+        let allStrokes = [];
+        
+        // Prediction state
+        let predictionTimeout = null;
+        let isPredicting = false;
+        let lastPredictions = [];
+        
+        // DOM elements
+        const clearButton = document.getElementById('clear-canvas');
+        const startButton = document.getElementById('start-game');
+        const colorOptions = document.querySelectorAll('.color-option');
+        const brushSize = document.getElementById('brush-size');
+        const predictionResult = document.getElementById('prediction-result');
+        const predictionDetails = document.getElementById('prediction-details');
+        const thinkingStatus = document.getElementById('thinking-status');
+        const timerElement = document.getElementById('timer');
+        const currentWordElement = document.getElementById('current-word');
+        const scoreElement = document.getElementById('score');
+        const scoreboardModal = document.getElementById('scoreboard-modal');
+        const scoreboardContent = document.getElementById('scoreboard-content');
+        const finalScoreElement = document.getElementById('final-score');
+        const playAgainButton = document.getElementById('play-again');
+        const successIndicator = document.getElementById('success-indicator');
+        
+        // Initialize canvas size
+        function resizeCanvas() {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            clearCanvas();
+        }
+        
+        // Clear canvas and reset strokes
+        function clearCanvas() {
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            allStrokes = [];
+            resetPredictions();
+        }
+        
+        // Reset prediction display
+        function resetPredictions() {
+            if (!gameActive) {
+                predictionResult.textContent = "Press Start Game to begin!";
+            } else {
+                predictionResult.textContent = `Draw: ${currentWord}`;
+            }
+            predictionDetails.innerHTML = "";
+            thinkingStatus.textContent = "AI is ready...";
+            
+            // Clear any pending prediction requests
+            if (predictionTimeout) {
+                clearTimeout(predictionTimeout);
+                predictionTimeout = null;
+            }
+        }
+        
+        // Schedule a prediction after drawing activity
+        function schedulePrediction() {
+            // Clear any existing timeout
+            if (predictionTimeout) {
+                clearTimeout(predictionTimeout);
+            }
+            
+            // Only predict if we have some strokes and game is active
+            if (allStrokes.length === 0 || !gameActive) {
+                return;
+            }
+            
+            // Set a timeout to predict after a short delay
+            predictionTimeout = setTimeout(() => {
+                predictDrawing();
+            }, 500);
+        }
+        
+        // Select random words for the game
+        function selectRandomWords() {
+            const shuffled = [...GAME_WORDS].sort(() => 0.5 - Math.random());
+            return shuffled.slice(0, WORDS_PER_GAME);
+        }
+        
+        // Start the game
+        function startGame() {
+            if (gameActive) return;
+            
+            // Reset game state
+            gameActive = true;
+            gameWords = selectRandomWords();
+            currentWordIndex = 0;
+            currentWord = gameWords[currentWordIndex];
+            score = 0;
+            timeLeft = GAME_TIME_SECONDS;
+            gameResults = [];
+            
+            // Update UI
+            updateScore();
+            updateCurrentWord();
+            startTimer();
+            clearCanvas();
+            
+            // Hide the start button during gameplay
+            startButton.disabled = true;
+        }
+        
+        // Update current word display
+        function updateCurrentWord() {
+            currentWordElement.textContent = currentWord;
+            predictionResult.textContent = `Draw: ${currentWord}`;
+        }
+        
+        // Update score display
+        function updateScore() {
+            scoreElement.textContent = score;
+        }
+        
+        // Start the countdown timer
+        function startTimer() {
+            updateTimerDisplay();
+            
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                
+                if (timeLeft <= 0) {
+                    endGame();
+                }
+                
+                updateTimerDisplay();
+            }, 1000);
+        }
+        
+        // Update timer display
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            timerElement.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            
+            // Change color when time is running out
+            if (timeLeft <= 10) {
+                timerElement.style.color = '#ff3333';
+            } else {
+                timerElement.style.color = '#333';
+            }
+        }
+        
+        // End the game
+        function endGame() {
+            clearInterval(timerInterval);
+            gameActive = false;
+            startButton.disabled = false;
+            
+            // Show scoreboard
+            showScoreboard();
+        }
+        
+        // Move to the next word
+        function nextWord() {
+            currentWordIndex++;
+            
+            // Check if game is complete
+            if (currentWordIndex >= gameWords.length) {
+                endGame();
+                return;
+            }
+            
+            currentWord = gameWords[currentWordIndex];
+            updateCurrentWord();
+            clearCanvas();
+        }
+        
+        // Show the scoreboard
+        function showScoreboard() {
+            // Generate scoreboard content
+            scoreboardContent.innerHTML = '';
+            
+            for (let i = 0; i < gameWords.length; i++) {
+                const result = i < gameResults.length ? gameResults[i] : false;
+                const resultText = result ? "✓ Correct" : "✗ Missed";
+                const resultClass = result ? "correct" : "incorrect";
+                
+                const item = document.createElement('div');
+                item.className = `scoreboard-item ${resultClass}`;
+                item.innerHTML = `
+                    <span>${i+1}. ${gameWords[i]}</span>
+                    <span>${resultText}</span>
+                `;
+                
+                scoreboardContent.appendChild(item);
+            }
+            
+            finalScoreElement.textContent = score;
+            scoreboardModal.style.display = 'flex';
+        }
+        
+        // Hide the scoreboard
+        function hideScoreboard() {
+            scoreboardModal.style.display = 'none';
+        }
+        
+        // Show success indicator animation
+        function showSuccessIndicator() {
+            successIndicator.style.display = 'block';
+            
+            setTimeout(() => {
+                successIndicator.style.display = 'none';
+            }, 1000);
+        }
+        
+        // Format drawing data for prediction
+        function formatDrawingForPrediction() {
+            return allStrokes.map(stroke => {
+                const flatStroke = [];
+                for (let i = 0; i < stroke.length; i++) {
+                    flatStroke.push(stroke[i].x, stroke[i].y);
+                }
+                return flatStroke;
+            });
+        }
+        
+        // Generate mock prediction results
+        function generateMockPredictions() {
+            // Create a copy of the game words array
+            const allPossibleLabels = [...GAME_WORDS];
+            
+            // Make sure the current word has a high probability of appearing
+            const currentWordLower = currentWord.toLowerCase();
+            
+            // Deterministic but varying predictions based on drawing complexity
+            const strokeCount = allStrokes.length;
+            const pointCount = allStrokes.reduce((count, stroke) => count + stroke.length, 0);
+            
+            // Calculate a score between 0 and 1 to determine how "good" the drawing is
+            // More strokes and points generally means more detailed drawing
+            const drawingComplexity = Math.min(1, (strokeCount * 0.2) + (pointCount * 0.01));
+            
+            // If drawing is complex enough, make current word more likely to be predicted
+            const predictions = [];
+            
+            // Current word should appear with higher probability based on drawing complexity
+            if (Math.random() < drawingComplexity * 0.8) {
+                predictions.push({
+                    label: currentWordLower,
+                    confidence: 0.5 + (drawingComplexity * 0.45) // Between 0.5 and 0.95
+                });
+            }
+            
+            // Add other random predictions
+            while (predictions.length < 5) {
+                const randomIndex = Math.floor(Math.random() * allPossibleLabels.length);
+                const randomLabel = allPossibleLabels[randomIndex].toLowerCase();
+                
+                // Skip if it's the current word and we already added it
+                if (randomLabel === currentWordLower && predictions.some(p => p.label === currentWordLower)) {
+                    continue;
+                }
+                
+                const randomConfidence = 0.3 + (Math.random() * 0.4); // Between 0.3 and 0.7
+                predictions.push({
+                    label: randomLabel,
+                    confidence: randomConfidence
+                });
+                
+                // Remove this word from possibilities to avoid duplicates
+                allPossibleLabels.splice(randomIndex, 1);
+                
+                if (allPossibleLabels.length === 0) break;
+            }
+            
+            // Sort by confidence (highest first)
+            predictions.sort((a, b) => b.confidence - a.confidence);
+            
+            return predictions;
+        }
+        
+        // Predict drawing and check for correct word
+        async function predictDrawing() {
+            if (allStrokes.length === 0 || isPredicting || !gameActive) {
+                return;
+            }
+            
+            isPredicting = true;
+            thinkingStatus.textContent = "AI is thinking...";
+            
+            try {
+                // Generate mock predictions
+                const predictions = generateMockPredictions();
+                lastPredictions = predictions;
+                
+                // Update prediction display
+                updatePredictions(predictions);
+                
+                // Check if the user's drawing was recognized correctly
+                checkForCorrectWord(predictions);
+                
+            } catch (error) {
+                console.error("Error predicting drawing:", error);
+                
+            } finally {
+                isPredicting = false;
+                thinkingStatus.textContent = "AI is ready...";
+            }
+        }
+        
+        // Check if the top prediction matches the current word
+        function checkForCorrectWord(predictions) {
+            if (!gameActive || predictions.length === 0) return;
+            
+            const topPrediction = predictions[0].label.toLowerCase();
+            const currentWordLower = currentWord.toLowerCase();
+            
+            // Check if the top prediction matches the current word
+            if (topPrediction === currentWordLower) {
+                // Correct match!
+                handleCorrectGuess();
+            }
+        }
+        
+        // Handle correct guess
+        function handleCorrectGuess() {
+            // Increment score
+            score++;
+            gameResults.push(true);
+            updateScore();
+            
+            // Show success animation
+            showSuccessIndicator();
+            
+            // Wait a moment before moving to next word
+            setTimeout(() => {
+                nextWord();
+            }, 1500);
+        }
+        
+        // Update prediction results in the UI
+        function updatePredictions(predictions) {
+            if (!predictions || predictions.length === 0) {
+                predictionResult.textContent = "Can't recognize that yet";
+                predictionDetails.innerHTML = "";
+                return;
+            }
+            
+            // Display the top prediction
+            predictionResult.textContent = `I see a ${predictions[0].label}!`;
+            
+            // Clear previous details
+            predictionDetails.innerHTML = "";
+            
+            // Add all predictions with confidence scores
+            predictions.forEach(prediction => {
+                const predictionItem = document.createElement('div');
+                predictionItem.className = 'prediction-item';
+                
+                const confidence = (prediction.confidence * 100).toFixed(1);
+                
+                predictionItem.innerHTML = `
+                    <span class="prediction-label">${prediction.label}</span>
+                    <span class="prediction-confidence">${confidence}%</span>
+                `;
+                
+                predictionDetails.appendChild(predictionItem);
+            });
+        }
+        
+        // Event listeners
+        window.addEventListener('load', () => {
+            resizeCanvas();
+        });
+        
+        window.addEventListener('resize', resizeCanvas);
+        
+        // Canvas drawing events
+        canvas.addEventListener('mousedown', (e) => {
+            if (!gameActive) return;
+            
+            isDrawing = true;
+            [lastX, lastY] = [e.offsetX, e.offsetY];
+            
+            // Start a new stroke
+            currentStroke = [{x: lastX, y: lastY}];
+        });
+        
+        canvas.addEventListener('mousemove', (e) => {
+            if (!isDrawing || !gameActive) return;
+            
+            ctx.strokeStyle = currentColor;
+            ctx.lineWidth = currentSize;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(e.offsetX, e.offsetY);
+            ctx.stroke();
+            
+            [lastX, lastY] = [e.offsetX, e.offsetY];
+            
+            // Add point to current stroke
+            currentStroke.push({x: lastX, y: lastY});
+        });
+        
+        canvas.addEventListener('mouseup', () => {
+            if (isDrawing && gameActive) {
+                isDrawing = false;
+                // Add completed stroke to allStrokes array
+                if (currentStroke.length > 1) {
+                    allStrokes.push(currentStroke);
+                    schedulePrediction();
+                }
+            }
+        });
+        
+        canvas.addEventListener('mouseout', () => {
+            if (isDrawing && gameActive) {
+                isDrawing = false;
+                // Add completed stroke to allStrokes array
+                if (currentStroke.length > 1) {
+                    allStrokes.push(currentStroke);
+                    schedulePrediction();
+                }
+            }
+        });
+        
+        // Touch events for mobile
+        canvas.addEventListener('touchstart', (e) => {
+            if (!gameActive) return;
+            e.preventDefault();
+            
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            const touchX = touch.clientX - rect.left;
+            const touchY = touch.clientY - rect.top;
+            
+            isDrawing = true;
+            [lastX, lastY] = [touchX, touchY];
+            
+            // Start a new stroke
+            currentStroke = [{x: lastX, y: lastY}];
+        });
+        
+        canvas.addEventListener('touchmove', (e) => {
+            if (!isDrawing || !gameActive) return;
+            e.preventDefault();
+            
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            const touchX = touch.clientX - rect.left;
+            const touchY = touch.clientY - rect.top;
+            
+            ctx.strokeStyle = currentColor;
+            ctx.lineWidth = currentSize;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(touchX, touchY);
+            ctx.stroke();
+            
+            [lastX, lastY] = [touchX, touchY];
+            
+            // Add point to current stroke
+            currentStroke.push({x: lastX, y: lastY});
+        });
+        
+        canvas.addEventListener('touchend', (e) => {
+            if (!gameActive) return;
+            e.preventDefault();
+            
+            if (isDrawing) {
+                isDrawing = false;
+                // Add completed stroke to allStrokes array
+                if (currentStroke.length > 1) {
+                    allStrokes.push(currentStroke);
+                    schedulePrediction();
+                }
+            }
+        });
+        
+        // Button events
+        clearButton.addEventListener('click', clearCanvas);
+        startButton.addEventListener('click', startGame);
+        playAgainButton.addEventListener('click', () => {
+            hideScoreboard();
+            startGame();
+        });
+        
+        // Color picker
+        colorOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                const color = option.getAttribute('data-color');
+                currentColor = color;
+                
+                // Remove selected class from all options
+                colorOptions.forEach(opt => opt.classList.remove('selected'));
+                
+                // Add selected class to clicked option
+                option.classList.add('selected');
+            });
+        });
+        
+        // Brush size
+        brushSize.addEventListener('input', () => {
+            currentSize = brushSize.value;
+        });
+        
+        // Initialize the app
+        resizeCanvas();
+    </script>
+</body>
+</html>
