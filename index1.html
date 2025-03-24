@@ -657,8 +657,7 @@
         
         // Generate mock prediction results
         function generateMockPredictions() {
-            // Create a copy of the game words array
-            return []
+            return [];
         }
         
         // Predict drawing and check for correct word
@@ -666,37 +665,36 @@
             if (allStrokes.length === 0 || isPredicting || !gameActive) {
                 return;
             }
-            
+
             isPredicting = true;
             thinkingStatus.textContent = "AI is thinking...";
-            
+
             try {
             // Convert canvas to 28x28 grayscale image
-            const input = await getFlattenedGrayscaleImage();
+                const input = await getFlattenedGrayscaleImage();
 
-            const response = await fetch("http://52.91.22.62:5000/predict", {
-                method: "POST",
-                headers: {
+                const response = await fetch("http://52.91.22.62:5000/predict", {
+                    method: "POST",
+                    headers: {
                     "Content-Type": "application/json"
-                },
-                body: JSON.stringify({ image: input })
-            });
+                    },
+                    body: JSON.stringify({ image: input })
+                });
 
-            const data = await response.json();
-            const predictions = data.predictions;
+                const data = await response.json();
+                const predictions = data.predictions;
 
-            updatePredictions(predictions);
-            checkForCorrectWord(predictions);
+                updatePredictions(predictions);
+                checkForCorrectWord(predictions);
 
-        } catch (error) {
-            console.error("Error calling prediction API:", error);
-            predictionResult.textContent = "Error connecting to backend.";
-        } finally {
-            isPredicting = false;
-            thinkingStatus.textContent = "AI is ready...";
+            } catch (error) {
+                console.error("Error calling prediction API:", error);
+                predictionResult.textContent = "Error connecting to backend.";
+            } finally {
+                isPredicting = false;
+                thinkingStatus.textContent = "AI is ready...";
+            }
         }
-        }
-
         async function getFlattenedGrayscaleImage() {
             const tempCanvas = document.createElement('canvas');
             tempCanvas.width = 28;
@@ -712,8 +710,321 @@
                 grayscale.push(avg / 255);
             }
 
-        return grayscale;
-    }
+            return grayscale;
+        }
+
+        
+        // Check if the top prediction matches the current word
+        function checkForCorrectWord(predictions) {
+            if (!gameActive || predictions.length === 0) return;
+            
+            const topPrediction = predictions[0].label.toLowerCase();
+            const currentWordLower = currentWord.toLowerCase();
+            
+            // Check if the top prediction matches the current word
+            if (topPrediction === currentWordLower) {
+                // Correct match!
+                handleCorrectGuess();
+            }
+        }
+        
+        // Handle correct guess
+        function handleCorrectGuess() {
+            // Increment score
+            score++;
+            gameResults.push(true);
+            updateScore();
+            
+            // Show success animation
+            showSuccessIndicator();
+            
+            // Wait a moment before moving to next word
+            setTimeout(() => {
+                nextWord();
+            }, 1500);
+        }
+        
+        // Update prediction results in the UI
+        function updatePredictions(predictions) {
+            if (!predictions || predictions.length === 0) {
+                predictionResult.textContent = "Can't recognize that yet";
+                predictionDetails.innerHTML = "";
+                return;
+            }
+            
+            // Display the top prediction
+            predictionResult.textContent = `I see a ${predictions[0].label}!`;
+            
+            // Clear previous details
+            predictionDetails.innerHTML = "";
+            
+            // Add all predictions with confidence scores
+            predictions.forEach(prediction => {
+                const predictionItem = document.createElement('div');
+                predictionItem.className = 'prediction-item';
+                
+                const confidence = (prediction.confidence * 100).toFixed(1);
+                
+                predictionItem.innerHTML = `
+                    <span class="prediction-label">${prediction.label}</span>
+                    <span class="prediction-confidence">${confidence}%</span>
+                `;
+                
+                predictionDetails.appendChild(predictionItem);
+            });
+        }
+        
+        // Event listeners
+        window.addEventListener('load', () => {
+            resizeCanvas();
+        });
+        
+        window.addEventListener('resize', resizeCanvas);
+        
+        // Canvas drawing events
+        canvas.addEventListener('mousedown', (e) => {
+            if (!gameActive) return;
+            
+            isDrawing = true;
+            [lastX, lastY] = [e.offsetX, e.offsetY];
+            
+            // Start a new stroke
+            currentStroke = [{x: lastX, y: lastY}];
+        });
+        
+        canvas.addEventListener('mousemove', (e) => {
+            if (!isDrawing || !gameActive) return;
+            
+            ctx.strokeStyle = currentColor;
+            ctx.lineWidth = currentSize;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(e.offsetX, e.offsetY);
+            ctx.stroke();
+            
+            [lastX, lastY] = [e.offsetX, e.offsetY];
+            
+            // Add point to current stroke
+            currentStroke.push({x: lastX, y: lastY});
+        });
+        
+        canvas.addEventListener('mouseup', () => {
+            if (isDrawing && gameActive) {
+                isDrawing = false;
+                // Add completed stroke to allStrokes array
+                if (currentStroke.length > 1) {
+                    allStrokes.push(currentStroke);
+                    schedulePrediction();
+                }
+            }
+        });
+        
+        canvas.addEventListener('mouseout', () => {
+            if (isDrawing && gameActive) {
+                isDrawing = false;
+                // Add completed stroke to allStrokes array
+                if (currentStroke.length > 1) {
+                    allStrokes.push(currentStroke);
+                    schedulePrediction();
+                }
+            }
+        });
+        
+        // Touch events for mobile
+        canvas.addEventListener('touchstart', (e) => {
+            if (!gameActive) return;
+            e.preventDefault();
+            
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            const touchX = touch.clientX - rect.left;
+            const touchY = touch.clientY - rect.top;
+            
+            isDrawing = true;
+            [lastX, lastY] = [touchX, touchY];
+            
+            // Start a new stroke
+            currentStroke = [{x: lastX, y: lastY}];
+        });
+        
+        canvas.addEventListener('touchmove', (e) => {
+            if (!isDrawing || !gameActive) return;
+            e.preventDefault();
+            
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            const touchX = touch.clientX - rect.left;
+            const touchY = touch.clientY - rect.top;
+            
+            ctx.strokeStyle = currentColor;
+            ctx.lineWidth = currentSize;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(touchX, touchY);
+            ctx.stroke();
+            
+            [lastX, lastY] = [touchX, touchY];
+            
+            // Add point to current stroke
+            currentStroke.push({x: lastX, y: lastY});
+        });
+        
+        canvas.addEventListener('touchend', (e) => {
+            if (!gameActive) return;
+            e.preventDefault();
+            
+            if (isDrawing) {
+                isDrawing = false;
+                // Add completed stroke to allStrokes array
+                if (currentStroke.length > 1) {
+                    allStrokes.push(currentStroke);
+                    schedulePrediction();
+                }
+            }
+        });
+        
+        // Button events
+        clearButton.addEventListener('click', clearCanvas);
+        startButton.addEventListener('click', startGame);
+        playAgainButton.addEventListener('click', () => {
+            hideScoreboard();
+            startGame();
+        });
+        
+        // Color picker
+        colorOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                const color = option.getAttribute('data-color');
+                currentColor = color;
+                
+                // Remove selected class from all options
+                colorOptions.forEach(opt => opt.classList.remove('selected'));
+                
+                // Add selected class to clicked option
+                option.classList.add('selected');
+            });
+        });
+        
+        // Brush size
+        brushSize.addEventListener('input', () => {
+            currentSize = brushSize.value;
+        });
+        
+        // Initialize the app
+        resizeCanvas();
+    </script>
+</body>
+</html>
+            scoreboardContent.innerHTML = '';
+            
+            for (let i = 0; i < gameWords.length; i++) {
+                const result = i < gameResults.length ? gameResults[i] : false;
+                const resultText = result ? "✓ Correct" : "✗ Missed";
+                const resultClass = result ? "correct" : "incorrect";
+                
+                const item = document.createElement('div');
+                item.className = `scoreboard-item ${resultClass}`;
+                item.innerHTML = `
+                    <span>${i+1}. ${gameWords[i]}</span>
+                    <span>${resultText}</span>
+                `;
+                
+                scoreboardContent.appendChild(item);
+            }
+            
+            finalScoreElement.textContent = score;
+            scoreboardModal.style.display = 'flex';
+        }
+        
+        // Hide the scoreboard
+        function hideScoreboard() {
+            scoreboardModal.style.display = 'none';
+        }
+        
+        // Show success indicator animation
+        function showSuccessIndicator() {
+            successIndicator.style.display = 'block';
+            
+            setTimeout(() => {
+                successIndicator.style.display = 'none';
+            }, 1000);
+        }
+        
+        // Format drawing data for prediction
+        function formatDrawingForPrediction() {
+            return allStrokes.map(stroke => {
+                const flatStroke = [];
+                for (let i = 0; i < stroke.length; i++) {
+                    flatStroke.push(stroke[i].x, stroke[i].y);
+                }
+                return flatStroke;
+            });
+        }
+        
+        // Generate mock prediction results
+        function generateMockPredictions() {
+            return [];
+        }
+        
+        // Predict drawing and check for correct word
+        async function predictDrawing() {
+            if (allStrokes.length === 0 || isPredicting || !gameActive) {
+                return;
+            }
+
+            isPredicting = true;
+            thinkingStatus.textContent = "AI is thinking...";
+
+            try {
+            // Convert canvas to 28x28 grayscale image
+                const input = await getFlattenedGrayscaleImage();
+
+                const response = await fetch("http://52.91.22.62:5000/predict", {
+                    method: "POST",
+                    headers: {
+                    "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ image: input })
+                });
+
+                const data = await response.json();
+                const predictions = data.predictions;
+
+                updatePredictions(predictions);
+                checkForCorrectWord(predictions);
+
+            } catch (error) {
+                console.error("Error calling prediction API:", error);
+                predictionResult.textContent = "Error connecting to backend.";
+            } finally {
+                isPredicting = false;
+                thinkingStatus.textContent = "AI is ready...";
+            }
+        }
+        async function getFlattenedGrayscaleImage() {
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = 28;
+            tempCanvas.height = 28;
+            const tempCtx = tempCanvas.getContext('2d');
+
+            tempCtx.drawImage(canvas, 0, 0, 28, 28);
+            const imageData = tempCtx.getImageData(0, 0, 28, 28).data;
+
+            const grayscale = [];
+            for (let i = 0; i < imageData.length; i += 4) {
+                const avg = (imageData[i] + imageData[i+1] + imageData[i+2]) / 3;
+                grayscale.push(avg / 255);
+            }
+
+            return grayscale;
+        }
+
         
         // Check if the top prediction matches the current word
         function checkForCorrectWord(predictions) {
