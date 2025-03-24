@@ -409,7 +409,7 @@
     
     <script>
         // Game configuration
-        const BACKEND_URL = "https://7e3f-50-17-127-74.ngrok-free.app";
+        const BACKEND_URL = "https://1113-50-17-127-74.ngrok-free.app/predict";
         const GAME_WORDS = [
             "Eiffel tower", "apple", "rainbow", "cloud", 
             "clock", "grapes", "nose", "mountain", 
@@ -675,7 +675,7 @@
             // Convert canvas to 28x28 grayscale image
             const input = await getFlattenedGrayscaleImage();
 
-            const response = await fetch("https://7e3f-50-17-127-74.ngrok-free.app", {
+            const response = await fetch("https://1113-50-17-127-74.ngrok-free.app/predict", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
