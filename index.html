@@ -659,56 +659,7 @@
         // Generate mock prediction results
         function generateMockPredictions() {
             // Create a copy of the game words array
-            const allPossibleLabels = [...GAME_WORDS];
-            
-            // Make sure the current word has a high probability of appearing
-            const currentWordLower = currentWord.toLowerCase();
-            
-            // Deterministic but varying predictions based on drawing complexity
-            const strokeCount = allStrokes.length;
-            const pointCount = allStrokes.reduce((count, stroke) => count + stroke.length, 0);
-            
-            // Calculate a score between 0 and 1 to determine how "good" the drawing is
-            // More strokes and points generally means more detailed drawing
-            const drawingComplexity = Math.min(1, (strokeCount * 0.2) + (pointCount * 0.01));
-            
-            // If drawing is complex enough, make current word more likely to be predicted
-            const predictions = [];
-            
-            // Current word should appear with higher probability based on drawing complexity
-            if (Math.random() < drawingComplexity * 0.8) {
-                predictions.push({
-                    label: currentWordLower,
-                    confidence: 0.5 + (drawingComplexity * 0.45) // Between 0.5 and 0.95
-                });
-            }
-            
-            // Add other random predictions
-            while (predictions.length < 5) {
-                const randomIndex = Math.floor(Math.random() * allPossibleLabels.length);
-                const randomLabel = allPossibleLabels[randomIndex].toLowerCase();
-                
-                // Skip if it's the current word and we already added it
-                if (randomLabel === currentWordLower && predictions.some(p => p.label === currentWordLower)) {
-                    continue;
-                }
-                
-                const randomConfidence = 0.3 + (Math.random() * 0.4); // Between 0.3 and 0.7
-                predictions.push({
-                    label: randomLabel,
-                    confidence: randomConfidence
-                });
-                
-                // Remove this word from possibilities to avoid duplicates
-                allPossibleLabels.splice(randomIndex, 1);
-                
-                if (allPossibleLabels.length === 0) break;
-            }
-            
-            // Sort by confidence (highest first)
-            predictions.sort((a, b) => b.confidence - a.confidence);
-            
-            return predictions;
+            return []
         }
         
         // Predict drawing and check for correct word
